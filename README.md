@@ -4,7 +4,7 @@
 **Roll numbers:** `27100159`, `27100384`  
 **Repository:** <https://github.com/SJK159/DeepLearningFireDetection>
 
-This repository contains our deep learning project for wildfire **fire and smoke detection** using object detection and vision-language guidance. The project begins with a strong **YOLOv8n baseline**, then explores improvements based on **false-positive mining**, **CLIP-guided semantic supervision**, and **contrastive learning**. The final submission paper summarizes the baseline, the proposed improvements, the ablation studies, and the failure-case analysis.
+This repository contains our deep learning project for wildfire **fire and smoke detection** using object detection and vision-language guidance. The project begins with a strong **YOLOv8n baseline**, then explores improvements based on **false-positive mining**, **CLIP-guided semantic supervision**, and **contrastive learning**. The final submission paper summarizes the baseline, the proposed improvements, the ablation studies, and the failure-case analysis. The main reported hybrid result is the epoch-12 checkpoint from the baseline-vs-best-hybrid comparison CSV.
 
 ---
 
@@ -39,6 +39,7 @@ DeepLearningFireDetection/
 │   ├── val_batch1_pred.jpg
 │   ├── val_batch2_labels.jpg
 │   └── val_batch2_pred.jpg
+├── baseline_vs_best_hybrid_comparison.csv
 └── result(fusionEpoch=25,lambda=0.5)/
     ├── final_baseline_vs_hybrid_lambda_0_5.csv
     ├── hybrid_training_history_lambda_0_5.csv
@@ -61,7 +62,8 @@ DeepLearningFireDetection/
 | `group16_27100159_27100384-2.ipynb` | First improvement notebook containing early improvement experiments and analysis. |
 | `dl-firedetection-5.ipynb` | Final notebook containing the completed experiments, final model logic, and final evaluation workflow. |
 | `results_final/` | Final visual outputs, curves, confusion matrices, and validation prediction grids. |
-| `result(fusionEpoch=25,lambda=0.5)/` | Final CLIP+YOLO hybrid run with `lambda = 0.5`, 25 epochs, 5 frozen epochs, mined false positives, training history, and result CSVs. |
+| `baseline_vs_best_hybrid_comparison.csv` | Main comparison CSV used for the final reported result. It identifies the selected best hybrid checkpoint as epoch 12 with `lambda = 0.5` and `alpha = 0.5`. |
+| `result(fusionEpoch=25,lambda=0.5)/` | Extended 25-epoch CLIP+YOLO hybrid diagnostic run. This run helped show that longer joint training caused drift/overfitting, so it is not the main reported best hybrid checkpoint. |
 
 ---
 
@@ -254,7 +256,7 @@ The answer from our experiments was mixed. The hybrid trained successfully and s
 
 ## Training Strategy
 
-The final hybrid run used a two-phase training schedule:
+The hybrid experiments used a two-phase training schedule:
 
 1. **Frozen phase**  
    Early epochs keep the YOLO pathway stable while training the new fusion/contrastive components.
@@ -262,18 +264,19 @@ The final hybrid run used a two-phase training schedule:
 2. **Joint phase**  
    Later epochs allow the hybrid model to update more of the trainable components jointly.
 
-For the main hybrid run:
+For the **main reported best hybrid checkpoint**, we use the uploaded `baseline_vs_best_hybrid_comparison.csv`. That CSV shows that the selected best hybrid model is the **epoch-12** checkpoint, not the final epoch of the 25-epoch diagnostic run.
 
 | Setting | Value |
 |---|---:|
 | Model | CLIP + YOLOv8n Hybrid |
 | λ | 0.5 |
 | α image anchor | 0.5 |
-| Total epochs | 25 |
-| Frozen epochs | 5 |
-| Hybrid weights | `/kaggle/working/hybrid_weights.pt` |
+| Selected best epoch | **12** |
+| mAP@0.5 | **0.4914** |
+| F1 | **0.5066** |
+| FPS | **81.7615** |
 
-The training history shows that detection loss and total loss decreased steadily across 25 epochs, which means optimization was successful even though final detection performance was weaker than the baseline.
+We also ran an extended 25-epoch hybrid experiment with `lambda = 0.5`, `alpha = 0.5`, and 5 frozen epochs. That run was useful diagnostically because it showed that simply training longer did not improve the hybrid model. After the best checkpoint, the 25-epoch run drifted/overfit and performance fell off. Therefore, the README's main comparison reports the **epoch-12 checkpoint** from `baseline_vs_best_hybrid_comparison.csv`.
 
 ---
 
@@ -312,16 +315,16 @@ results = {
     "model": "CLIP+YOLOv8n Hybrid",
     "lambda": 0.5,
     "alpha_img": 0.5,
-    "epochs": 25,
-    "freeze_epochs": 5,
-    "mAP50": 0.4057,
-    "mAP50_95": 0.1763,
-    "precision": 0.5257,
-    "recall": 0.4093,
-    "f1": 0.4603,
+    "selected_epoch": 12,
+    "mAP50": 0.4914,
+    "mAP50_95": 0.2194,
+    "precision": 0.5338,
+    "recall": 0.4821,
+    "f1": 0.5066,
+    "fps": 81.7615,
 }
 
-pd.DataFrame([results]).to_csv("final_baseline_vs_hybrid_lambda_0_5.csv", index=False)
+pd.DataFrame([results]).to_csv("baseline_vs_best_hybrid_comparison.csv", index=False)
 ```
 
 ---
@@ -330,16 +333,21 @@ pd.DataFrame([results]).to_csv("final_baseline_vs_hybrid_lambda_0_5.csv", index=
 
 ### Main Comparison
 
-| Model | λ | α | Epochs | Frozen epochs | mAP@0.5 | mAP@0.5:0.95 | Precision | Recall | F1 | FPS | AP Smoke | AP Fire |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| YOLOv8n Baseline | — | — | — | — | **0.7057** | **0.3912** | **0.7112** | **0.6365** | **0.6718** | 56.33 | **0.7624** | **0.6490** |
-| CLIP+YOLOv8n Hybrid | 0.5 | 0.5 | 25 | 5 | 0.4057 | 0.1763 | 0.5257 | 0.4093 | 0.4603 | 77.90 | 0.2909 | 0.5204 |
+The main comparison below comes from `baseline_vs_best_hybrid_comparison.csv`. The important correction is that the best reported hybrid is the **epoch-12 checkpoint**, while the 25-epoch run is treated as a longer diagnostic experiment that later degraded.
+
+| Model | Epoch | λ | α | mAP@0.5 | mAP@0.5:0.95 | Precision | Recall | F1 | FPS |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| YOLOv8n Baseline | baseline | — | — | **0.7057** | **0.3912** | **0.7112** | **0.6365** | **0.6718** | 59.1285 |
+| CLIP+YOLOv8n Hybrid | **12** | 0.5 | 0.5 | 0.4914 | 0.2194 | 0.5338 | 0.4821 | 0.5066 | **81.7615** |
+| Δ Hybrid - Baseline | — | — | — | -0.2143 | -0.1718 | -0.1774 | -0.1544 | -0.1651 | +22.6330 |
 
 ### Interpretation
 
-The YOLOv8n baseline outperformed the final CLIP+YOLOv8n hybrid run. The baseline achieved stronger overall mAP, stronger F1, and much better smoke AP. The hybrid was faster in the reported run, but its accuracy dropped substantially, especially for smoke detection.
+The YOLOv8n baseline remained the strongest overall detector. It achieved higher mAP@0.5, mAP@0.5:0.95, precision, recall, and F1 than the selected best hybrid checkpoint.
 
-This suggests that naive CLIP-YOLO feature fusion can disrupt the detector's learned localization and class balance. The hybrid branch may overemphasize semantic fire cues while weakening subtle smoke localization.
+The best hybrid model was the **epoch-12 CLIP+YOLOv8n checkpoint** with `lambda = 0.5` and `alpha = 0.5`. It reached **mAP@0.5 = 0.4914**, **mAP@0.5:0.95 = 0.2194**, **precision = 0.5338**, **recall = 0.4821**, **F1 = 0.5066**, and **FPS = 81.7615**. The later 25-epoch hybrid run should not be treated as the best model; it was useful for showing that extended joint optimization caused drift/overfitting and reduced performance.
+
+This suggests that CLIP-YOLO feature fusion is promising but sensitive. The hybrid can add semantic guidance, but if training continues too long or the contrastive signal disrupts the detector, localization and smoke/fire class balance can degrade.
 
 ---
 
@@ -372,7 +380,7 @@ We ran ablations to understand how contrastive-anchor design and loss weighting 
 | **0.5** | **0.5367** | **0.2513** | **0.5696** | **0.5354** | **0.5520** |
 | 1.0 | 0.4961 | 0.2249 | 0.5357 | 0.5165 | 0.5260 |
 
-**Finding:** In the controlled lambda ablation, `λ = 0.5` gave the strongest result. However, the final 25-epoch hybrid run with `λ = 0.5` still underperformed the baseline, showing that the hybrid is sensitive not only to λ but also to training schedule, anchor construction, and feature-fusion stability.
+**Finding:** In the controlled lambda ablation, `λ = 0.5` gave the strongest sweep result. However, the main baseline-vs-best-hybrid comparison uses the **epoch-12** checkpoint from the epoch sweep, because later 25-epoch training caused drift/overfitting. This shows that the hybrid is sensitive not only to λ, but also to checkpoint selection, training schedule, anchor construction, and feature-fusion stability.
 
 ---
 
@@ -399,20 +407,23 @@ The validation prediction grids and mined false-positive examples reveal several
 
 ## Key Takeaways
 
-1. **YOLOv8n is a strong baseline for this task.**  
-   It achieved the best final results with mAP@0.5 of approximately `0.7057` and F1 of `0.6718`.
+1. **YOLOv8n is the strongest final detector.**  
+   It achieved the best final results with `mAP@0.5 = 0.7057` and `F1 = 0.6718`.
 
-2. **False-positive mining is useful.**  
+2. **The best hybrid checkpoint is epoch 12.**  
+   The main comparison CSV identifies the selected best CLIP+YOLOv8n hybrid as the **epoch-12** checkpoint with `lambda = 0.5` and `alpha = 0.5`. It reached `mAP@0.5 = 0.4914` and `F1 = 0.5066`.
+
+3. **The 25-epoch hybrid run was diagnostic, not the best model.**  
+   Longer training caused drift/overfitting and performance falloff, so the 25-epoch checkpoint should not be reported as the final best hybrid.
+
+4. **False-positive mining is useful.**  
    It exposed the exact visual patterns that fooled the baseline and gave a strong motivation for semantic negative anchors.
 
-3. **CLIP guidance is promising but unstable.**  
-   The hybrid model trained successfully, but the final configuration did not outperform the detector-only baseline.
+5. **CLIP guidance is promising but unstable.**  
+   The hybrid model trained successfully, but even the selected best checkpoint did not outperform the detector-only baseline.
 
-4. **Smoke detection is more sensitive than fire detection.**  
+6. **Smoke detection is especially sensitive.**  
    Several hybrid variants shifted the model toward fire-like cues and weakened smoke localization.
-
-5. **The best hybrid ablation remained below the baseline.**  
-   The best hybrid configuration reached approximately `mAP@0.5 = 0.519`, whereas the baseline reached `mAP@0.5 = 0.7057`.
 
 ---
 
@@ -458,11 +469,12 @@ val_batch*_pred.jpg
 
 ### 5. Check saved result CSV files
 
-The final hybrid run saves:
+The main comparison and hybrid diagnostics use:
 
 ```text
-final_baseline_vs_hybrid_lambda_0_5.csv
-hybrid_training_history_lambda_0_5.csv
+baseline_vs_best_hybrid_comparison.csv   # main reported best hybrid: epoch 12
+final_baseline_vs_hybrid_lambda_0_5.csv  # 25-epoch diagnostic hybrid result
+hybrid_training_history_lambda_0_5.csv   # extended-run training history
 mined_fps.csv
 ```
 
@@ -474,7 +486,7 @@ mined_fps.csv
 - The model did not use temporal video consistency, even though wildfire monitoring often involves video streams.
 - The hybrid approach used image-level semantic guidance rather than region-level CLIP supervision.
 - The datasets contain many visually diverse examples, but real-world deployment would require broader validation across camera types, weather, geography, and lighting conditions.
-- The final hybrid run did not outperform the baseline, so the hybrid should be treated as an experimental contribution rather than the final best detector.
+- The selected best hybrid checkpoint at epoch 12 did not outperform the baseline, so the hybrid should be treated as an experimental contribution rather than the final best detector. The later 25-epoch run caused performance falloff, suggesting drift or overfitting.
 
 ---
 
@@ -494,7 +506,7 @@ Future improvements could include:
 
 ## Final Conclusion
 
-This project demonstrates a complete fire and smoke detection pipeline using YOLOv8n and a CLIP-guided hybrid extension. The YOLOv8n baseline achieved the strongest overall result, while false-positive mining revealed important weaknesses caused by smoke-like background patterns. The CLIP+YOLO hybrid provided a useful experimental direction and improved under some ablations, but it did not surpass the baseline in the final configuration. The main contribution is therefore both practical and analytical: a strong detector baseline, a documented semantic-fusion attempt, and a clear failure-case study showing why wildfire smoke detection remains difficult.
+This project demonstrates a complete fire and smoke detection pipeline using YOLOv8n and a CLIP-guided hybrid extension. The YOLOv8n baseline achieved the strongest overall result, with `mAP@0.5 = 0.7057` and `F1 = 0.6718`. The selected best CLIP+YOLOv8n hybrid checkpoint occurred at **epoch 12**, with `lambda = 0.5` and `alpha = 0.5`, reaching `mAP@0.5 = 0.4914` and `F1 = 0.5066`. The later 25-epoch hybrid run showed performance falloff, so it is treated as evidence of drift/overfitting rather than as the best model. The main contribution is therefore both practical and analytical: a strong detector baseline, a documented semantic-fusion attempt, and a clear failure-case study showing why wildfire smoke detection remains difficult.
 
 ---
 
