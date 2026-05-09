@@ -1,0 +1,2 @@
+chosen_epoch,lambda,alpha,mAP50,mAP50_95,precision,recall,f1,fps,AP50_smoke,AP50_fire,best_hybrid_checkpoint,best_yolo_only_checkpoint
+12,0.5,0.5,0.491399,0.219411,0.533758,0.482108,0.50662,81.761,0.428574,0.554223,/kaggle/working/hybrid_epoch_sweep_lambda_0_5_alpha_0_5/best_hybrid_by_val_map50.pt,/kaggle/working/hybrid_epoch_sweep_lambda_0_5_alpha_0_5/best_yolo_only_by_val_map50.pt

@@ -1,0 +1,14 @@
+{
+  "epoch": 12,
+  "lambda": 0.5,
+  "alpha": 0.5,
+  "mAP50": 0.508615,
+  "mAP50_95": 0.235084,
+  "precision": 0.543445,
+  "recall": 0.490446,
+  "f1": 0.515587,
+  "AP50_smoke": 0.450779,
+  "AP50_fire": 0.566451,
+  "hybrid_checkpoint": "/kaggle/working/hybrid_epoch_sweep_lambda_0_5_alpha_0_5/checkpoints/hybrid_epoch_12.pt",
+  "yolo_only_checkpoint": "/kaggle/working/hybrid_epoch_sweep_lambda_0_5_alpha_0_5/checkpoints/yolo_only_epoch_12.pt"
+}
